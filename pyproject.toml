@@ -1,0 +1,16 @@
+[project]
+name = "lister"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "textual>=8.0.1",
+    "xdg-base-dirs>=6.0.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.5",
+]
