@@ -1,7 +1,7 @@
 
 # Create initial list index screen
 
-Status: draft
+Status: implemented
 
 ## Overview
 
