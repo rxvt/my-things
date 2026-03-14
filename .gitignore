@@ -11,3 +11,6 @@ wheels/
 
 # Database
 entries.db
+
+# Claude Code
+TODO.md
