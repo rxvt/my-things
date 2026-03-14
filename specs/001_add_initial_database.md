@@ -1,6 +1,6 @@
 # Add initial database
 
-Status: draft
+Status: implemented
 
 ## Overview
 

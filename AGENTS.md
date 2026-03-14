@@ -16,13 +16,14 @@
 ## Specifications
 
 * Specifications are under `./specs`
+* Specifications should start in `draft`, move to `in-progress` and finish in `implemented`
 
 ## Code Style Guidelines
 
 - **Python version**: 3.14+ minimum
 - **Formatting**: ruff (88 char line length)
 - **Linting**: ruff with Google docstring convention
-- **Type hints**: Required, enforced by ty
+- **Type hints**: Required, enforced by ty. Should generally be for function parameters and return types.
 - **Imports**: stdlib → third-party → local, one per line
 - **Naming**: snake_case functions/variables, PascalCase classes
 - **Docstrings**: Google style for all public functions
