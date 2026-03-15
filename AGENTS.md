@@ -12,6 +12,7 @@
 ## Plans
 
 * Plans are under `./plans`
+* Plans should have their statuses updated to reflect `in-progress` or `implemeted`
 
 ## Specifications
 
@@ -31,3 +32,4 @@ the feature has finished being implemented
 - **Docstrings**: Google style for all public functions
 - **Error handling**: Use custom exceptions from exceptions.py
 - **Logging**: logging module with module-level loggers
+- **Testing**: tests should be written using the Red/Green methodology
