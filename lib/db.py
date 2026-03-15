@@ -16,6 +16,7 @@ import logging
 import sqlite3
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 from xdg_base_dirs import xdg_data_home
 
@@ -205,7 +206,10 @@ def get_or_create_developer(conn: sqlite3.Connection, name: str) -> int:
     if row:
         return int(row["id"])
     cursor = conn.execute("INSERT INTO developers (name) VALUES (?)", (name,))
-    return cursor.lastrowid
+    # cursor.lastrowid is typed as int | None but is always an int after a
+    # successful INSERT — it is only None when no row was inserted, which
+    # would have raised an exception before reaching this point.
+    return cast(int, cursor.lastrowid)
 
 
 def insert_game(
@@ -237,7 +241,10 @@ def insert_game(
         """,
         (title, date_finished, platform_id, comments or None, developer_id),
     )
-    return cursor.lastrowid
+    # cursor.lastrowid is typed as int | None but is always an int after a
+    # successful INSERT — it is only None when no row was inserted, which
+    # would have raised an exception before reaching this point.
+    return cast(int, cursor.lastrowid)
 
 
 # ---------------------------------------------------------------------------
