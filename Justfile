@@ -8,6 +8,10 @@ default:
 test:
     uv run pytest tests/ -v
 
+# Check for type errors
+typecheck:
+    uv run ty check
+
 # Create a new spec file from template (e.g. just new-spec "add user auth")
 new-spec name:
     #!/usr/bin/env bash
