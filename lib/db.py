@@ -133,6 +133,113 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
     logger.info("Applied migration v1: initial schema")
 
 
+def _migrate_v2(conn: sqlite3.Connection) -> None:
+    """Apply migration v2: seed platform table with default entries.
+
+    Populates the ``platform`` table with a set of common gaming platforms.
+
+    Args:
+        conn: An open database connection.
+    """
+    platforms = [
+        "Switch",
+        "PS3",
+        "PS4",
+        "PS5",
+        "PC",
+        "Xbox360",
+        "3DS",
+        "Dolphin",
+        "Xbox",
+        "NES",
+    ]
+    conn.executemany(
+        "INSERT INTO platform (name) VALUES (?)",
+        [(p,) for p in platforms],
+    )
+    logger.info("Applied migration v2: seeded platform table")
+
+
+# ---------------------------------------------------------------------------
+# Query helpers
+# ---------------------------------------------------------------------------
+
+
+def get_developer_names(conn: sqlite3.Connection) -> list[str]:
+    """Return all developer names ordered alphabetically.
+
+    Args:
+        conn: An open database connection.
+
+    Returns:
+        A list of developer name strings.
+    """
+    rows = conn.execute("SELECT name FROM developers ORDER BY name").fetchall()
+    return [row["name"] for row in rows]
+
+
+def get_platforms(conn: sqlite3.Connection) -> list[tuple[str, int]]:
+    """Return all platforms as (name, id) tuples ordered alphabetically.
+
+    Args:
+        conn: An open database connection.
+
+    Returns:
+        A list of ``(name, id)`` tuples suitable for use in a Select widget.
+    """
+    rows = conn.execute("SELECT id, name FROM platform ORDER BY name").fetchall()
+    return [(row["name"], row["id"]) for row in rows]
+
+
+def get_or_create_developer(conn: sqlite3.Connection, name: str) -> int:
+    """Return the id of a developer, creating a new row if none exists.
+
+    Args:
+        conn: An open database connection.
+        name: The developer name to look up or create.
+
+    Returns:
+        The ``id`` of the existing or newly inserted developer row.
+    """
+    row = conn.execute("SELECT id FROM developers WHERE name = ?", (name,)).fetchone()
+    if row:
+        return int(row["id"])
+    cursor = conn.execute("INSERT INTO developers (name) VALUES (?)", (name,))
+    return cursor.lastrowid
+
+
+def insert_game(
+    conn: sqlite3.Connection,
+    *,
+    title: str,
+    developer_id: int,
+    date_finished: str,
+    platform_id: int,
+    comments: str | None,
+) -> int:
+    """Insert a new game row and return its id.
+
+    Args:
+        conn: An open database connection.
+        title: The game title.
+        developer_id: Foreign key to the ``developers`` table.
+        date_finished: Date completed in ``yyyy-mm-dd`` format.
+        platform_id: Foreign key to the ``platform`` table.
+        comments: Optional free-text notes, or None.
+
+    Returns:
+        The ``id`` of the newly inserted game row.
+    """
+    cursor = conn.execute(
+        """
+        INSERT INTO games (game, date_finished, platform_id, comments, developer_id)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (title, date_finished, platform_id, comments or None, developer_id),
+    )
+    return cursor.lastrowid
+
+
 # ---------------------------------------------------------------------------
 # Migration registry and runner
 # ---------------------------------------------------------------------------
@@ -141,6 +248,7 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
 #: Add new migrations here in ascending order.
 MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {
     1: _migrate_v1,
+    2: _migrate_v2,
 }
 
 

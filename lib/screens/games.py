@@ -62,7 +62,22 @@ class GamesScreen(Screen):
         self.app.pop_screen()
 
     def action_add(self) -> None:
-        """Placeholder for adding a game entry."""
+        """Open the add game modal."""
+        from lib.screens.add_game import AddGameScreen
+
+        self.app.push_screen(
+            AddGameScreen(self._conn),
+            callback=self._handle_add_result,
+        )
+
+    def _handle_add_result(self, saved: bool | None) -> None:
+        """Refresh the games list if a new game was saved.
+
+        Args:
+            saved: True if a game was successfully added.
+        """
+        if saved:
+            self._refresh_list()
 
     def action_edit(self) -> None:
         """Placeholder for editing a game entry."""

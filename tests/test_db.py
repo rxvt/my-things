@@ -11,7 +11,11 @@ from lib.db import (
     get_connection,
     get_current_version,
     get_db_path,
+    get_developer_names,
+    get_or_create_developer,
+    get_platforms,
     init_db,
+    insert_game,
     run_migrations,
 )
 
@@ -227,4 +231,222 @@ def test_date_finished_is_nullable() -> None:
         "SELECT date_finished FROM games WHERE game = 'Elden Ring'"
     ).fetchone()
     assert row[0] is None
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Migration v2 — platform seed data
+# ---------------------------------------------------------------------------
+
+
+def test_migration_v2_seeds_platform_table() -> None:
+    """The platform table should contain all 10 seeded entries after init."""
+    conn = init_db(_MEMORY)
+    rows = conn.execute("SELECT name FROM platform ORDER BY name").fetchall()
+    names = {row["name"] for row in rows}
+    expected = {
+        "Switch",
+        "PS3",
+        "PS4",
+        "PS5",
+        "PC",
+        "Xbox360",
+        "3DS",
+        "Dolphin",
+        "Xbox",
+        "NES",
+    }
+    assert names == expected
+    conn.close()
+
+
+def test_migration_v2_platform_count() -> None:
+    """The platform table should have exactly 10 entries."""
+    conn = init_db(_MEMORY)
+    row = conn.execute("SELECT COUNT(*) FROM platform").fetchone()
+    assert row[0] == 10
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# get_developer_names
+# ---------------------------------------------------------------------------
+
+
+def test_get_developer_names_empty() -> None:
+    """get_developer_names returns an empty list when no developers exist."""
+    conn = init_db(_MEMORY)
+    assert get_developer_names(conn) == []
+    conn.close()
+
+
+def test_get_developer_names_returns_sorted_names() -> None:
+    """get_developer_names returns names in alphabetical order."""
+    conn = init_db(_MEMORY)
+    conn.executemany(
+        "INSERT INTO developers (name) VALUES (?)",
+        [("Zelda Studio",), ("Argonaut",), ("Midway",)],
+    )
+    conn.commit()
+    assert get_developer_names(conn) == ["Argonaut", "Midway", "Zelda Studio"]
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# get_platforms
+# ---------------------------------------------------------------------------
+
+
+def test_get_platforms_returns_name_id_tuples() -> None:
+    """get_platforms returns (name, id) tuples for each platform."""
+    conn = init_db(_MEMORY)
+    result = get_platforms(conn)
+    assert all(len(t) == 2 for t in result)
+    names = [name for name, _ in result]
+    assert "Switch" in names
+    assert "PC" in names
+    conn.close()
+
+
+def test_get_platforms_returns_sorted_by_name() -> None:
+    """get_platforms returns platforms in alphabetical order."""
+    conn = init_db(_MEMORY)
+    result = get_platforms(conn)
+    names = [name for name, _ in result]
+    assert names == sorted(names)
+    conn.close()
+
+
+def test_get_platforms_ids_are_ints() -> None:
+    """get_platforms returns integer ids."""
+    conn = init_db(_MEMORY)
+    result = get_platforms(conn)
+    assert all(isinstance(pid, int) for _, pid in result)
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# get_or_create_developer
+# ---------------------------------------------------------------------------
+
+
+def test_get_or_create_developer_creates_new() -> None:
+    """get_or_create_developer inserts a new row when the name is unknown."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    row = conn.execute(
+        "SELECT id, name FROM developers WHERE name = 'Team Cherry'"
+    ).fetchone()
+    assert row is not None
+    assert row["id"] == dev_id
+    conn.close()
+
+
+def test_get_or_create_developer_returns_existing_id() -> None:
+    """get_or_create_developer returns the existing id without inserting a duplicate."""
+    conn = init_db(_MEMORY)
+    first_id = get_or_create_developer(conn, "FromSoftware")
+    second_id = get_or_create_developer(conn, "FromSoftware")
+    assert first_id == second_id
+    count = conn.execute(
+        "SELECT COUNT(*) FROM developers WHERE name = 'FromSoftware'"
+    ).fetchone()[0]
+    assert count == 1
+    conn.close()
+
+
+def test_get_or_create_developer_returns_int() -> None:
+    """get_or_create_developer always returns an int."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Nintendo")
+    assert isinstance(dev_id, int)
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# insert_game
+# ---------------------------------------------------------------------------
+
+
+def _platform_id(conn: sqlite3.Connection) -> int:
+    """Return the id of the first platform in the database."""
+    return int(conn.execute("SELECT id FROM platform LIMIT 1").fetchone()["id"])
+
+
+def test_insert_game_creates_row() -> None:
+    """insert_game inserts a row into the games table."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    plat_id = _platform_id(conn)
+    insert_game(
+        conn,
+        title="Hollow Knight",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments=None,
+    )
+    conn.commit()
+    row = conn.execute("SELECT game FROM games WHERE game = 'Hollow Knight'").fetchone()
+    assert row is not None
+    conn.close()
+
+
+def test_insert_game_returns_int_id() -> None:
+    """insert_game returns the integer id of the new row."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    plat_id = _platform_id(conn)
+    game_id = insert_game(
+        conn,
+        title="Hollow Knight",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments=None,
+    )
+    conn.commit()
+    assert isinstance(game_id, int)
+    conn.close()
+
+
+def test_insert_game_stores_comments() -> None:
+    """insert_game persists the comments value."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "FromSoftware")
+    plat_id = _platform_id(conn)
+    insert_game(
+        conn,
+        title="Elden Ring",
+        developer_id=dev_id,
+        date_finished="2024-01-20",
+        platform_id=plat_id,
+        comments="Incredible open world.",
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT comments FROM games WHERE game = 'Elden Ring'"
+    ).fetchone()
+    assert row["comments"] == "Incredible open world."
+    conn.close()
+
+
+def test_insert_game_null_comments_when_empty() -> None:
+    """insert_game stores NULL when an empty string is passed for comments."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    plat_id = _platform_id(conn)
+    insert_game(
+        conn,
+        title="Hollow Knight",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments="",
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT comments FROM games WHERE game = 'Hollow Knight'"
+    ).fetchone()
+    assert row["comments"] is None
     conn.close()

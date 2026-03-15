@@ -40,3 +40,107 @@ ConfirmDeleteScreen {
 #confirm-buttons Button {
     margin: 0 1;
 }
+
+/* Add game modal */
+AddGameScreen {
+    align: center middle;
+}
+
+#add-game-form {
+    width: 60;
+    height: auto;
+    padding: 1 2;
+}
+
+#add-game-title {
+    text-align: center;
+    text-style: bold;
+    width: 100%;
+}
+
+#add-game-form Label {
+    padding: 0 1;
+    margin-top: 1;
+}
+
+#add-game-form #add-game-title {
+    margin-top: 0;
+}
+
+#add-game-form Input {
+    margin: 0 1;
+}
+
+#add-game-form Select {
+    margin: 0 1;
+}
+
+#validation-error {
+    color: $error;
+    margin-top: 0;
+    padding: 0 1;
+}
+
+#add-game-buttons {
+    width: 100%;
+    height: auto;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#add-game-buttons Button {
+    margin: 0 1;
+}
+
+/* Comments row: input + expand button side by side */
+#comments-row {
+    width: 100%;
+    height: auto;
+    margin: 0 1;
+}
+
+#comments-row Input {
+    margin: 0;
+    width: 1fr;
+}
+
+#btn-expand-comments {
+    width: auto;
+    margin-left: 1;
+}
+
+/* Comments editor modal */
+CommentsEditorScreen {
+    align: center middle;
+    overflow: hidden;
+}
+
+#comments-editor-form {
+    width: 80;
+    height: auto;
+    padding: 1 2;
+}
+
+#comments-editor-title {
+    text-align: center;
+    text-style: bold;
+    width: 100%;
+    padding: 0 1;
+}
+
+#comments-textarea {
+    height: 15;
+    max-height: 15;
+    margin: 0 1;
+}
+
+#comments-editor-buttons {
+    width: 100%;
+    height: auto;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#comments-editor-buttons Button {
+    margin: 0 1;
+}
