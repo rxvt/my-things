@@ -10,7 +10,7 @@ We need to create a basic database framework and schema that we can build upon l
 
 * Database functions should live in `./lib/db.py`
 * We are using SQlite
-* The database file should be called entries.db, this file should live in `./local/share/lister/entries.db`
+* The database file should be called entries.db, this file should live in `./local/share/my-things/entries.db`
 which conforms to the XDG spec
 * XDG directories should be determined by `xdg-base-dirs` python package.
 * We will be using a hand rolled basic schema migration implementation, using the `PRAGMA user_version`

@@ -1,19 +1,15 @@
-"""Lister — a TUI app for managing personal lists."""
+"""My Things — a TUI app for managing personal lists."""
 
 import sqlite3
 from pathlib import Path
 
 from textual.app import App
-from textual.app import ComposeResult
-from textual.widgets import Footer
-from textual.widgets import Label
-from textual.widgets import ListItem
-from textual.widgets import ListView
 
 from lib.db import init_db
+from lib.screens.index import IndexScreen
 
 
-class ListerApp(App):
+class MyThingsApp(App):
     """A Textual app that displays an index of available lists."""
 
     CSS_PATH = "main.tcss"
@@ -29,19 +25,10 @@ class ListerApp(App):
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
 
-    def compose(self) -> ComposeResult:
-        """Create the initial layout with a ListView and Footer."""
-        yield ListView(id="list-index")
-        yield Footer()
-
     def on_mount(self) -> None:
-        """Initialise the database and populate the ListView on mount."""
+        """Initialise the database and push the index screen."""
         self._conn = init_db(self._db_path)
-        rows = self._conn.execute("SELECT name FROM list_index").fetchall()
-        list_view = self.query_one("#list-index", ListView)
-        for row in rows:
-            list_view.append(ListItem(Label(row["name"])))
-        list_view.index = 0
+        self.push_screen(IndexScreen(self._conn))
 
     def on_unmount(self) -> None:
         """Close the database connection on shutdown."""
@@ -51,4 +38,4 @@ class ListerApp(App):
 
 
 if __name__ == "__main__":
-    ListerApp().run()
+    MyThingsApp().run()

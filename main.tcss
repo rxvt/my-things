@@ -2,12 +2,41 @@ Screen {
     align: center middle;
 }
 
-ListView {
+/* Index screen list */
+#list-index {
     width: 40;
     height: auto;
     max-height: 15;
 }
 
+/* Games screen list */
+#games-list {
+    width: 60;
+    height: auto;
+    max-height: 20;
+}
+
 Label {
     padding: 1 2;
+}
+
+/* Confirm delete dialog */
+ConfirmDeleteScreen {
+    align: center middle;
+}
+
+#confirm-message {
+    width: 40;
+    padding: 1 2;
+    text-align: center;
+}
+
+#confirm-buttons {
+    width: 40;
+    height: auto;
+    align-horizontal: center;
+}
+
+#confirm-buttons Button {
+    margin: 0 1;
 }

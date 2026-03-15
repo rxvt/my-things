@@ -35,7 +35,7 @@ def _memory_conn() -> sqlite3.Connection:
 def test_get_db_path_returns_entries_db() -> None:
     """Path should end with entries.db under the XDG data directory."""
     path = get_db_path()
-    assert path == xdg_data_home() / "lister" / "entries.db"
+    assert path == xdg_data_home() / "my-things" / "entries.db"
 
 
 def test_get_db_path_creates_parent_directory() -> None:

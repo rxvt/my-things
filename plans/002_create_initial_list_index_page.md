@@ -11,7 +11,7 @@ lists from the `list_index` database table, with a Footer widget.
 ## Decisions
 
 - The Textual `App` subclass lives in `main.py` as specified.
-- `ListerApp` accepts an optional `db_path` parameter for testability, passed
+- `MyThingsApp` accepts an optional `db_path` parameter for testability, passed
   through to `init_db()`. This follows the same pattern used in `lib/db.py`.
 - DB connection is opened on mount, closed on unmount.
 - No selection behavior — selecting a list item is a no-op per the spec.
@@ -27,7 +27,7 @@ lists from the `list_index` database table, with a Footer widget.
 
 - [x] Import `App`, `ComposeResult`, `Footer`, `Label`, `ListItem`, `ListView`
   from textual, and `init_db` from `lib.db`.
-- [x] Create `ListerApp(App)` class with:
+- [x] Create `MyThingsApp(App)` class with:
   - `__init__(db_path=None)` storing the path for later use
   - `on_mount()` — calls `init_db(db_path)`, queries `list_index`, populates
     the ListView

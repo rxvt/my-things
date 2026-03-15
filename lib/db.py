@@ -1,4 +1,4 @@
-"""Database connection, path management, and schema migrations for Lister.
+"""Database connection, path management, and schema migrations for My Things.
 
 This module provides the core database layer built on SQLite. It uses
 ``PRAGMA user_version`` to implement a simple hand-rolled migration system.
@@ -26,12 +26,12 @@ def get_db_path() -> Path:
     """Return the path to the database file, creating parent dirs if needed.
 
     The database is stored under the XDG data home directory:
-    ``~/.local/share/lister/entries.db``.
+    ``~/.local/share/my-things/entries.db``.
 
     Returns:
         A :class:`Path` pointing to the database file.
     """
-    data_dir = xdg_data_home() / "lister"
+    data_dir = xdg_data_home() / "my-things"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir / "entries.db"
 

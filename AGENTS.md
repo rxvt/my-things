@@ -17,6 +17,8 @@
 
 * Specifications are under `./specs`
 * Specifications should start in `draft`, move to `in-progress` and finish in `implemented`
+* Specifications should only be moved to `implemented` _after_ confirmation by the user that
+the feature has finished being implemented
 
 ## Code Style Guidelines
 

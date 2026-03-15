@@ -5,14 +5,14 @@ Status: complete
 
 ## Overview
 
-Implement the initial SQLite database layer for Lister, including a migration
+Implement the initial SQLite database layer for My Things, including a migration
 system using `PRAGMA user_version`, the initial schema (games, developers,
 platform, list_index tables), and tests.
 
 ## Decisions
 
 - Table name `index` from spec renamed to `list_index` to avoid reserved word conflicts.
-- Database file stored at `~/.local/share/lister/entries.db` (XDG data directory).
+- Database file stored at `~/.local/share/my-things/entries.db` (XDG data directory).
 - Migration versioning: `user_version=0` means fresh/empty DB, `user_version=1`
   applies the initial schema.
 - `date_finished` in games table is nullable (allows tracking in-progress games).
@@ -37,7 +37,7 @@ platform, list_index tables), and tests.
 
 ### 3. Implement database connection and path management in `lib/db.py`
 
-- [x] `get_db_path() -> Path` — returns `~/.local/share/lister/entries.db`,
+- [x] `get_db_path() -> Path` — returns `~/.local/share/my-things/entries.db`,
   creating parent directories if needed.
 - [x] `get_connection(db_path: Path | None = None) -> sqlite3.Connection` —
   opens a connection with `PRAGMA foreign_keys = ON`. Accepts optional path
