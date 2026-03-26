@@ -21,17 +21,23 @@ def _seed_games(app: MyThingsApp) -> None:
     """Insert test game entries into the database."""
     conn = app._conn
     assert conn is not None
+    dev_id = conn.execute(
+        "INSERT INTO developers (name) VALUES (?) RETURNING id", ("Test Dev",)
+    ).fetchone()["id"]
+    plat_id = conn.execute("SELECT id FROM platform WHERE name = 'Switch'").fetchone()[
+        "id"
+    ]
     conn.execute(
-        "INSERT INTO games (game, date_finished) VALUES (?, ?)",
-        ("Hollow Knight", "2023-06-15"),
+        "INSERT INTO games (game, date_finished, platform_id, developer_id) VALUES (?, ?, ?, ?)",
+        ("Hollow Knight", "2023-06-15", plat_id, dev_id),
     )
     conn.execute(
-        "INSERT INTO games (game, date_finished) VALUES (?, ?)",
-        ("Elden Ring", "2024-01-20"),
+        "INSERT INTO games (game, date_finished, platform_id, developer_id) VALUES (?, ?, ?, ?)",
+        ("Elden Ring", "2024-01-20", plat_id, dev_id),
     )
     conn.execute(
-        "INSERT INTO games (game, date_finished) VALUES (?, ?)",
-        ("Celeste", "2022-03-10"),
+        "INSERT INTO games (game, date_finished, platform_id, developer_id) VALUES (?, ?, ?, ?)",
+        ("Celeste", "2022-03-10", plat_id, dev_id),
     )
     conn.commit()
 
@@ -118,6 +124,28 @@ async def test_games_display_date_format(app: MyThingsApp) -> None:
         list_view = pilot.app.screen.query_one("#games-list", ListView)
         first_label = list_view.query(ListItem).first().query_one(Label)
         assert "2022-03-10" in first_label.content
+
+
+async def test_games_display_platform(app: MyThingsApp) -> None:
+    """Games should display the platform name in the label."""
+    async with app.run_test() as pilot:
+        _seed_games(app)
+        await pilot.press("enter")
+        await pilot.pause()
+        list_view = pilot.app.screen.query_one("#games-list", ListView)
+        first_label = list_view.query(ListItem).first().query_one(Label)
+        assert "Switch" in first_label.content
+
+
+async def test_games_display_format(app: MyThingsApp) -> None:
+    """Games should display entries as '{title} - {date} - {platform}'."""
+    async with app.run_test() as pilot:
+        _seed_games(app)
+        await pilot.press("enter")
+        await pilot.pause()
+        list_view = pilot.app.screen.query_one("#games-list", ListView)
+        first_label = list_view.query(ListItem).first().query_one(Label)
+        assert first_label.content == "Celeste - 2022-03-10 - Switch"
 
 
 async def test_games_first_item_highlighted(app: MyThingsApp) -> None:

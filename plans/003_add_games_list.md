@@ -30,46 +30,72 @@ with confirmation dialog is functional).
 
 ### 2. Create `lib/screens/` package
 
-- [ ] `lib/screens/__init__.py`
+- [x] `lib/screens/__init__.py`
 
 ### 3. Create `IndexScreen` in `lib/screens/index.py`
 
-- [ ] Extract current index ListView logic from `main.py` into `IndexScreen(Screen)`
-- [ ] Handle `ListView.Selected` — when "Games" is selected, push `GamesScreen`
+- [x] Extract current index ListView logic from `main.py` into `IndexScreen(Screen)`
+- [x] Handle `ListView.Selected` — when "Games" is selected, push `GamesScreen`
 
 ### 4. Create `GamesScreen` in `lib/screens/games.py`
 
-- [ ] Query `games` table ordered by `date_finished ASC`
-- [ ] Display each entry as `ListItem` with game title and date
-- [ ] First entry highlighted by default
-- [ ] Key bindings: `a` (no-op), `e` (no-op), `d` (delete), `escape` (back)
-- [ ] Delete: show confirmation modal, if Yes remove from DB and ListView
+- [x] Query `games` table ordered by `date_finished ASC`
+- [x] Display each entry as `ListItem` with game title and date
+- [x] First entry highlighted by default
+- [x] Key bindings: `a` (no-op), `e` (no-op), `d` (delete), `escape` (back)
+- [x] Delete: show confirmation modal, if Yes remove from DB and ListView
 
 ### 5. Create delete confirmation modal
 
-- [ ] `ConfirmDeleteScreen(ModalScreen)` with Yes/No buttons
-- [ ] No button focused by default
-- [ ] Returns True (Yes) or False (No)
+- [x] `ConfirmDeleteScreen(ModalScreen)` with Yes/No buttons
+- [x] No button focused by default
+- [x] Returns True (Yes) or False (No)
 
 ### 6. Refactor `main.py`
 
-- [ ] `MyThingsApp` owns DB connection, pushes `IndexScreen` as default
-- [ ] Pass connection to screens
+- [x] `MyThingsApp` owns DB connection, pushes `IndexScreen` as default
+- [x] Pass connection to screens
 
 ### 7. Update CSS
 
-- [ ] Games ListView: centered, max-height for 20 entries
-- [ ] Confirmation dialog styling
+- [x] Games ListView: centered, max-height for 20 entries
+- [x] Confirmation dialog styling
 
 ### 8. Write tests
 
-- [ ] Update existing index tests for screen architecture
-- [ ] Games screen tests (footer, list view, ordering, highlighting, delete flow, escape)
+- [x] Update existing index tests for screen architecture
+- [x] Games screen tests (footer, list view, ordering, highlighting, delete flow, escape)
 
 ### 9. Run tests and verify
 
-- [ ] All tests pass
+- [x] All tests pass
 
-### 10. Mark spec as implemented
+### 10. Display format amendment
 
-- [ ] `in-progress` → `implemented`
+Spec updated to require the format `{game title} - {date finished} - {platform}`
+rather than the original `{game title}  {date finished}`.
+
+#### Modified files
+
+- `lib/screens/games.py` — update `_refresh_list()` to JOIN `platform` table
+  and use new label format `f"{row['game']} - {row['date_finished']} - {row['platform_name']}"`
+- `tests/test_games.py` — update `_seed_games()` to include `platform_id`
+  and `developer_id`; update `test_games_display_date_format` to assert full
+  format including platform; add `test_games_display_platform` to assert platform
+  name appears in labels
+- `tests/test_add_game.py` — update `test_saved_game_appears_in_list` to assert
+  platform name is visible in the label
+
+#### Steps
+
+- [x] Update plan
+- [x] Update `_refresh_list()` in `lib/screens/games.py`: JOIN platform, new label format
+- [x] Update `_seed_games()` in `tests/test_games.py`: add `platform_id` and `developer_id`
+- [x] Update `test_games_display_date_format` to assert full `{title} - {date} - {platform}` format
+- [x] Add `test_games_display_platform` asserting platform name in labels
+- [x] Update `test_saved_game_appears_in_list` in `tests/test_add_game.py`
+- [x] Run all tests and verify
+
+### 11. Mark spec as implemented
+
+- [ ] `in-progress` → `implemented` (after user confirmation)

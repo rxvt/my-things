@@ -21,3 +21,4 @@ No option should be selected by default.
 * Game finished dates should be in the format of `yyyy-mm-dd`.
 * Only games that have been finished are added to this list so the finished date will always have a
 valid value.
+* The game titles should be displayed in the format of `{game title} - {date finished} - {platform}`

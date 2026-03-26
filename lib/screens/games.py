@@ -47,11 +47,18 @@ class GamesScreen(Screen):
         list_view = self.query_one("#games-list", ListView)
         list_view.clear()
         rows = self._conn.execute(
-            "SELECT id, game, date_finished FROM games ORDER BY date_finished ASC"
+            """
+            SELECT g.id, g.game, g.date_finished, p.name AS platform_name
+            FROM games g
+            JOIN platform p ON p.id = g.platform_id
+            ORDER BY g.date_finished ASC
+            """
         ).fetchall()
         for row in rows:
             item = ListItem(
-                Label(f"{row['game']}  {row['date_finished']}"),
+                Label(
+                    f"{row['game']} - {row['date_finished']} - {row['platform_name']}"
+                ),
             )
             item.data = {"id": row["id"]}  # type: ignore[attr-defined]
             list_view.append(item)

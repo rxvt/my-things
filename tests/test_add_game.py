@@ -395,6 +395,14 @@ async def test_saved_game_appears_in_list(app: MyThingsApp) -> None:
         label_text = items[0].query_one(Label).content
         assert "Hollow Knight" in label_text
         assert "2023-06-15" in label_text
+        # Platform name should also appear (format: {title} - {date} - {platform})
+        conn = app._conn
+        assert conn is not None
+        plat_row = conn.execute(
+            "SELECT p.name FROM platform p JOIN games g ON g.platform_id = p.id"
+        ).fetchone()
+        assert plat_row is not None
+        assert plat_row["name"] in label_text
 
 
 # ---------------------------------------------------------------------------
