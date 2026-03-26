@@ -33,3 +33,7 @@ the feature has finished being implemented
 - **Error handling**: Use custom exceptions from exceptions.py
 - **Logging**: logging module with module-level loggers
 - **Testing**: tests should be written using the Red/Green methodology
+
+## Git
+
+* Don't commit unless I explicitly tell you to
