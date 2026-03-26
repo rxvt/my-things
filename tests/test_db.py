@@ -12,6 +12,7 @@ from lib.db import (
     get_current_version,
     get_db_path,
     get_developer_names,
+    get_game_by_id,
     get_or_create_developer,
     get_platforms,
     init_db,
@@ -449,4 +450,76 @@ def test_insert_game_null_comments_when_empty() -> None:
         "SELECT comments FROM games WHERE game = 'Hollow Knight'"
     ).fetchone()
     assert row["comments"] is None
+    conn.close()
+
+
+def test_insert_game_upsert_updates_existing_row() -> None:
+    """Passing game_id to insert_game updates the row instead of inserting a new one."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    plat_id = _platform_id(conn)
+    game_id = insert_game(
+        conn,
+        title="Hollow Knight",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments=None,
+    )
+    conn.commit()
+    # Update the title via UPSERT
+    insert_game(
+        conn,
+        title="Hollow Knight: Silksong",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments=None,
+        game_id=game_id,
+    )
+    conn.commit()
+    # Should still be only one row
+    count = conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+    assert count == 1
+    # And the title should be updated
+    row = conn.execute("SELECT game FROM games WHERE id = ?", (game_id,)).fetchone()
+    assert row["game"] == "Hollow Knight: Silksong"
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# get_game_by_id
+# ---------------------------------------------------------------------------
+
+
+def test_get_game_by_id_returns_row() -> None:
+    """get_game_by_id returns correct game data for a known id."""
+    conn = init_db(_MEMORY)
+    dev_id = get_or_create_developer(conn, "Team Cherry")
+    plat_id = _platform_id(conn)
+    game_id = insert_game(
+        conn,
+        title="Hollow Knight",
+        developer_id=dev_id,
+        date_finished="2023-06-15",
+        platform_id=plat_id,
+        comments="Great game",
+    )
+    conn.commit()
+    row = get_game_by_id(conn, game_id)
+    assert row is not None
+    assert row["id"] == game_id
+    assert row["game"] == "Hollow Knight"
+    assert row["developer_name"] == "Team Cherry"
+    assert row["date_finished"] == "2023-06-15"
+    assert row["platform_id"] == plat_id
+    assert row["comments"] == "Great game"
+    conn.close()
+
+
+def test_get_game_by_id_missing_returns_none() -> None:
+    """get_game_by_id returns None when no row with the given id exists."""
+    conn = init_db(_MEMORY)
+    result = get_game_by_id(conn, 99999)
+    assert result is None
     conn.close()

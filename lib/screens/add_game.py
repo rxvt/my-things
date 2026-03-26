@@ -44,7 +44,12 @@ def _comments_preview(text: str, max_len: int = _PREVIEW_MAX_LEN) -> str:
 
 
 class AddGameScreen(ModalScreen[bool]):
-    """A modal form for adding a new game to the list.
+    """A modal form for adding or editing a game entry.
+
+    When *game_data* is ``None`` the modal operates in "add" mode (default).
+    When *game_data* is provided the modal operates in "edit" mode: all fields
+    are pre-populated with the existing values and saving performs an UPDATE
+    via UPSERT rather than a plain INSERT.
 
     Returns True if a game was saved, False if cancelled.
     """
@@ -53,14 +58,23 @@ class AddGameScreen(ModalScreen[bool]):
         Binding("escape", "cancel", "Cancel", show=False),
     ]
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
-        """Initialise the add game screen.
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        game_data: dict | None = None,
+    ) -> None:
+        """Initialise the add/edit game screen.
 
         Args:
             conn: An open database connection.
+            game_data: Optional dict of existing game values for edit mode.
+                Expected keys: ``id``, ``game``, ``developer_name``,
+                ``date_finished``, ``platform_id``, ``comments``.
+                When ``None`` the modal opens in add mode.
         """
         super().__init__()
         self._conn = conn
+        self._game_data = game_data
         self._full_comments: str = ""
         self._updating_preview: bool = False
 
@@ -68,9 +82,10 @@ class AddGameScreen(ModalScreen[bool]):
         """Build the form layout."""
         dev_names = get_developer_names(self._conn)
         platform_options = get_platforms(self._conn)
+        title_text = "Edit Game" if self._game_data else "Add Game"
 
         with Vertical(id="add-game-form"):
-            yield Label("Add Game", id="add-game-title")
+            yield Label(title_text, id="add-game-title")
 
             yield Label("Title")
             yield Input(placeholder="Game title", id="input-title")
@@ -115,6 +130,25 @@ class AddGameScreen(ModalScreen[bool]):
                 Button("Cancel", id="btn-cancel"),
                 id="add-game-buttons",
             )
+
+    def on_mount(self) -> None:
+        """Pre-populate form fields when opening in edit mode."""
+        if self._game_data is None:
+            return
+        self.query_one("#input-title", Input).value = self._game_data["game"] or ""
+        self.query_one("#input-developer", Input).value = (
+            self._game_data["developer_name"] or ""
+        )
+        self.query_one("#input-date-finished", Input).value = (
+            self._game_data["date_finished"] or ""
+        )
+        platform_id = self._game_data["platform_id"]
+        if platform_id is not None:
+            self.query_one("#select-platform", Select).value = platform_id
+        raw_comments = self._game_data["comments"] or ""
+        self._full_comments = raw_comments
+        self._updating_preview = True
+        self.query_one("#input-comments", Input).value = _comments_preview(raw_comments)
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Sync _full_comments when the user types directly in the comments Input.
@@ -198,6 +232,7 @@ class AddGameScreen(ModalScreen[bool]):
         comments = self._full_comments.strip()
 
         developer_id = get_or_create_developer(self._conn, developer_name)
+        game_id = self._game_data["id"] if self._game_data else None
         insert_game(
             self._conn,
             title=title,
@@ -205,6 +240,7 @@ class AddGameScreen(ModalScreen[bool]):
             date_finished=date_finished,
             platform_id=platform_id,
             comments=comments or None,
+            game_id=game_id,
         )
         self._conn.commit()
         self.dismiss(True)

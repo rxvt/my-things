@@ -11,6 +11,8 @@ from textual.widgets import Label
 from textual.widgets import Select
 from textual.widgets import TextArea
 
+from lib.db import get_or_create_developer
+from lib.db import insert_game
 from lib.screens.add_game import AddGameScreen
 from lib.screens.add_game import _comments_preview
 from lib.screens.comments_editor import CommentsEditorScreen
@@ -609,3 +611,181 @@ async def test_editor_prepopulated_with_existing_text(app: MyThingsApp) -> None:
         await pilot.pause()
         ta = pilot.app.screen.query_one("#comments-textarea", TextArea)
         assert ta.text == "Existing note"
+
+
+# ---------------------------------------------------------------------------
+# Helpers for edit mode tests
+# ---------------------------------------------------------------------------
+
+
+def _seed_game(
+    app: MyThingsApp,
+    *,
+    title: str = "Hollow Knight",
+    developer: str = "Team Cherry",
+    date_finished: str = "2023-06-15",
+    comments: str | None = None,
+) -> int:
+    """Insert a game into the app's DB and return its id."""
+    conn = app._conn
+    assert conn is not None
+    plat_id = int(conn.execute("SELECT id FROM platform LIMIT 1").fetchone()["id"])
+    dev_id = get_or_create_developer(conn, developer)
+    game_id = insert_game(
+        conn,
+        title=title,
+        developer_id=dev_id,
+        date_finished=date_finished,
+        platform_id=plat_id,
+        comments=comments,
+    )
+    conn.commit()
+    return game_id
+
+
+async def _navigate_to_games_with_game(pilot, app: MyThingsApp) -> None:
+    """Seed a game, then navigate to GamesScreen with the item highlighted."""
+    _seed_game(app)
+    await _navigate_to_games(pilot)
+    await pilot.pause()
+
+
+# ---------------------------------------------------------------------------
+# Edit modal — appearance
+# ---------------------------------------------------------------------------
+
+
+async def test_edit_modal_appears_on_e(app: MyThingsApp) -> None:
+    """Pressing 'e' with a highlighted game should open the AddGameScreen."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        assert isinstance(pilot.app.screen, GamesScreen)
+        await pilot.press("e")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, AddGameScreen)
+
+
+async def test_edit_modal_title_is_edit_game(app: MyThingsApp) -> None:
+    """The edit modal title label should read 'Edit Game'."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        title_label = pilot.app.screen.query_one("#add-game-title", Label)
+        assert "Edit Game" in title_label.content
+
+
+async def test_edit_modal_prepopulates_title(app: MyThingsApp) -> None:
+    """The title input should be pre-populated with the existing game title."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        title_input = pilot.app.screen.query_one("#input-title", Input)
+        assert title_input.value == "Hollow Knight"
+
+
+async def test_edit_modal_prepopulates_developer(app: MyThingsApp) -> None:
+    """The developer input should be pre-populated with the existing developer."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        dev_input = pilot.app.screen.query_one("#input-developer", Input)
+        assert dev_input.value == "Team Cherry"
+
+
+async def test_edit_modal_prepopulates_date(app: MyThingsApp) -> None:
+    """The date input should be pre-populated with the existing date."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        date_input = pilot.app.screen.query_one("#input-date-finished", Input)
+        assert date_input.value == "2023-06-15"
+
+
+async def test_edit_modal_prepopulates_platform(app: MyThingsApp) -> None:
+    """The platform select should be pre-populated with the existing platform."""
+    async with app.run_test() as pilot:
+        conn = app._conn
+        assert conn is not None
+        plat_id = int(conn.execute("SELECT id FROM platform LIMIT 1").fetchone()["id"])
+        _seed_game(app)
+        await _navigate_to_games(pilot)
+        await pilot.pause()
+        await pilot.press("e")
+        await pilot.pause()
+        select = pilot.app.screen.query_one("#select-platform", Select)
+        assert select.value == plat_id
+
+
+async def test_edit_modal_prepopulates_comments(app: MyThingsApp) -> None:
+    """The comments input should show a preview of the existing comments."""
+    async with app.run_test() as pilot:
+        _seed_game(app, comments="Excellent platformer")
+        await _navigate_to_games(pilot)
+        await pilot.pause()
+        await pilot.press("e")
+        await pilot.pause()
+        comments_input = pilot.app.screen.query_one("#input-comments", Input)
+        assert "Excellent platformer" in comments_input.value
+
+
+# ---------------------------------------------------------------------------
+# Edit modal — save / cancel behaviour
+# ---------------------------------------------------------------------------
+
+
+async def test_edit_save_updates_existing_game(app: MyThingsApp) -> None:
+    """Saving the edit modal should update the existing row, not insert a new one."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        # Change the title
+        title_input = pilot.app.screen.query_one("#input-title", Input)
+        title_input.value = "Hollow Knight: Silksong"
+        save_btn = pilot.app.screen.query_one("#btn-save", Button)
+        save_btn.focus()
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, GamesScreen)
+        conn = app._conn
+        assert conn is not None
+        # Only one game row should exist
+        count = conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+        assert count == 1
+        # And it should have the updated title
+        row = conn.execute("SELECT game FROM games").fetchone()
+        assert row["game"] == "Hollow Knight: Silksong"
+
+
+async def test_edit_cancel_does_not_modify_game(app: MyThingsApp) -> None:
+    """Cancelling the edit modal should leave the game unchanged."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games_with_game(pilot, app)
+        await pilot.press("e")
+        await pilot.pause()
+        # Change the title but cancel
+        title_input = pilot.app.screen.query_one("#input-title", Input)
+        title_input.value = "Some Other Game"
+        cancel_btn = pilot.app.screen.query_one("#btn-cancel", Button)
+        cancel_btn.focus()
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, GamesScreen)
+        conn = app._conn
+        assert conn is not None
+        row = conn.execute("SELECT game FROM games").fetchone()
+        assert row["game"] == "Hollow Knight"
+
+
+async def test_edit_no_item_highlighted_does_nothing(app: MyThingsApp) -> None:
+    """Pressing 'e' on an empty games list should not open the edit modal."""
+    async with app.run_test() as pilot:
+        await _navigate_to_games(pilot)
+        assert isinstance(pilot.app.screen, GamesScreen)
+        await pilot.press("e")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, GamesScreen)

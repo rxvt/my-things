@@ -10,6 +10,7 @@ from textual.widgets import Label
 from textual.widgets import ListItem
 from textual.widgets import ListView
 
+from lib.db import get_game_by_id
 from lib.screens.confirm import ConfirmDeleteScreen
 
 
@@ -80,7 +81,29 @@ class GamesScreen(Screen):
             self._refresh_list()
 
     def action_edit(self) -> None:
-        """Placeholder for editing a game entry."""
+        """Open the edit game modal for the currently highlighted entry."""
+        from lib.screens.add_game import AddGameScreen
+
+        list_view = self.query_one("#games-list", ListView)
+        if list_view.highlighted_child is None:
+            return
+        game_id = list_view.highlighted_child.data["id"]  # type: ignore[attr-defined]
+        row = get_game_by_id(self._conn, game_id)
+        if row is None:
+            return
+        self.app.push_screen(
+            AddGameScreen(self._conn, game_data=dict(row)),
+            callback=self._handle_edit_result,
+        )
+
+    def _handle_edit_result(self, saved: bool | None) -> None:
+        """Refresh the games list if an edit was saved.
+
+        Args:
+            saved: True if the game was successfully updated.
+        """
+        if saved:
+            self._refresh_list()
 
     def action_delete(self) -> None:
         """Delete the currently selected game after confirmation."""

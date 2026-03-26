@@ -212,6 +212,33 @@ def get_or_create_developer(conn: sqlite3.Connection, name: str) -> int:
     return cast(int, cursor.lastrowid)
 
 
+def get_game_by_id(
+    conn: sqlite3.Connection,
+    game_id: int,
+) -> sqlite3.Row | None:
+    """Return a single game row joined with its developer name, or None.
+
+    Args:
+        conn: An open database connection.
+        game_id: The primary key of the game to fetch.
+
+    Returns:
+        A :class:`sqlite3.Row` with columns ``id``, ``game``,
+        ``developer_name``, ``date_finished``, ``platform_id``, and
+        ``comments``, or ``None`` if no row with that id exists.
+    """
+    return conn.execute(
+        """
+        SELECT g.id, g.game, d.name AS developer_name,
+               g.date_finished, g.platform_id, g.comments
+        FROM games g
+        JOIN developers d ON d.id = g.developer_id
+        WHERE g.id = ?
+        """,
+        (game_id,),
+    ).fetchone()
+
+
 def insert_game(
     conn: sqlite3.Connection,
     *,
@@ -220,8 +247,13 @@ def insert_game(
     date_finished: str,
     platform_id: int,
     comments: str | None,
+    game_id: int | None = None,
 ) -> int:
-    """Insert a new game row and return its id.
+    """Insert or update a game row and return its id.
+
+    When *game_id* is ``None`` a new row is inserted and the auto-generated
+    id is returned.  When *game_id* is provided the existing row is updated
+    via ``ON CONFLICT(id) DO UPDATE`` and *game_id* is returned.
 
     Args:
         conn: An open database connection.
@@ -230,20 +262,27 @@ def insert_game(
         date_finished: Date completed in ``yyyy-mm-dd`` format.
         platform_id: Foreign key to the ``platform`` table.
         comments: Optional free-text notes, or None.
+        game_id: Primary key of an existing row to update, or ``None`` to
+            insert a new row.
 
     Returns:
-        The ``id`` of the newly inserted game row.
+        The ``id`` of the inserted or updated game row.
     """
     cursor = conn.execute(
         """
-        INSERT INTO games (game, date_finished, platform_id, comments, developer_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO games (id, game, date_finished, platform_id, comments, developer_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            game=excluded.game,
+            date_finished=excluded.date_finished,
+            platform_id=excluded.platform_id,
+            comments=excluded.comments,
+            developer_id=excluded.developer_id
         """,
-        (title, date_finished, platform_id, comments or None, developer_id),
+        (game_id, title, date_finished, platform_id, comments or None, developer_id),
     )
-    # cursor.lastrowid is typed as int | None but is always an int after a
-    # successful INSERT — it is only None when no row was inserted, which
-    # would have raised an exception before reaching this point.
+    # For an INSERT, lastrowid is the new auto-generated id.
+    # For an UPDATE (ON CONFLICT), lastrowid is the id of the updated row.
     return cast(int, cursor.lastrowid)
 
 
